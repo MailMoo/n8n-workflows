@@ -1,0 +1,611 @@
+{
+  "name": "Personalized Video Messages",
+  "nodes": [
+    {
+      "parameters": {
+        "batchSize": 4,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        660,
+        75
+      ],
+      "id": "bc190dc3-d5f1-4295-af96-b3a4c7f5187a",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        0
+      ],
+      "id": "59a05fe8-afc7-42ed-9890-7725508659d4",
+      "name": "Wait",
+      "webhookId": "85ba60e3-5c37-40d0-a6f2-ad75d1c95983"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        75
+      ],
+      "id": "f5243aba-0b5a-4276-9970-df016aca4892",
+      "name": "Start the workflow"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "19DHPRH2bF-jXXOAuDGeu91LczkP2-JRZ056tDDx8HKQ",
+          "mode": "list",
+          "cachedResultName": "n8n personalized messages",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19DHPRH2bF-jXXOAuDGeu91LczkP2-JRZ056tDDx8HKQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Test data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19DHPRH2bF-jXXOAuDGeu91LczkP2-JRZ056tDDx8HKQ/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        220,
+        75
+      ],
+      "id": "8aa81a1a-21d5-4407-bd8e-9b29b9ccc026",
+      "name": "Get lead data from Sheets",
+      "credentials": {
+        
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e01de066-3a75-4bdd-9395-ec75064e68d5",
+              "leftValue": "={{ $json['Company Domain'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "9e816abf-9863-46fa-9270-72a13476595b",
+              "leftValue": "={{ $json['First Name'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        75
+      ],
+      "id": "1f17d3c6-f8e9-441f-ae90-d8a6907b7da6",
+      "name": "Check that Personalization variables are found"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mailmoo.io/USE-YOUR-OWN-CAMPAIGN",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"Full Name\": \"{{ $json['Full Name'] }}\",\n  \"First Name\": \"{{ $json['First Name'] }}\",\n  \"Company Name\": \"{{ $json['Company Name'] }}\",\n  \"Last Name\": \"{{ $json['Last Name'] }}\",\n  \"Location\": \"{{ $json.Location }}\",\n  \"Company Domain\": \"{{ $json['Company Domain'] }}\",\n  \"Job Title\": \"{{ $json['Job Title'] }}\",\n  \"LinkedIn Profile\": \"{{ $json['LinkedIn Profile'] }}\"\n}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        80
+      ],
+      "id": "1b346602-4fd8-4919-beee-3c177fe71521",
+      "name": "Send Lead Data to Mailmoo",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "6f838a77-4f8f-4173-9c27-1ea772f1fab1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        40
+      ],
+      "id": "3673cb13-46a9-465f-a629-f653104e8de8",
+      "name": "Wait for Video to be ready",
+      "webhookId": "6f838a77-4f8f-4173-9c27-1ea772f1fab1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = JSON.parse($input.first().json.body);\nconst variables = data.payload.data.lead.variables;\n\n// Find values by variable type and name\nconst firstName = variables.find(v => v.variableType.builtInType === \"FIRST_NAME\")?.value;\nconst lastName = variables.find(v => v.variableType.builtInType === \"LAST_NAME\")?.value;\nconst fullName = variables.find(v => v.variableType.builtInType === \"FULL_NAME\")?.value;\nconst websiteLink = variables.find(v => v.variableType.builtInType === \"WEBSITE_LINK\")?.value;\nconst linkedInPersonal = variables.find(v => v.variableType.builtInType === \"PERSONAL_LINKEDIN\")?.value;\nconst jobTitle = variables.find(v => v.variableType.name === \"Job Title\")?.value;\nconst companyName = variables.find(v => v.variableType.builtInType === \"COMPANY_NAME\")?.value;\nconst location = variables.find(v => v.variableType.name === \"Location\")?.value;\n\nreturn {\n    \"Video Link\": `https://sharing.mailmoo.io/${data.payload.data.slug}`,\n    \"First Name\": firstName,\n    \"Last Name\": lastName,\n    \"Full Name\": fullName,\n    \"Website Link\": websiteLink ? (websiteLink.includes(\"https\") ? websiteLink : `https://${websiteLink}`) : null,\n    \"LinkedIn Personal\": linkedInPersonal,\n    \"Job Title\": jobTitle,\n    \"Company Name\": companyName,\n    \"Location\": location\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1620,
+        40
+      ],
+      "id": "5c5fa568-3684-42d1-a5a9-513fec090a2d",
+      "name": "Extract Variables From Mailmoo"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json['Website Link'] }}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1840,
+        40
+      ],
+      "id": "2c512a86-cfb7-49fb-ad3b-6c07d17f47ff",
+      "name": "Scrape the Lead Website contents",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "html": "={{ $json.data }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.markdown",
+      "typeVersion": 1,
+      "position": [
+        2060,
+        40
+      ],
+      "id": "ba1c6f2c-8399-4a23-bcaa-73e5b5632ab6",
+      "name": "Extract data from HTML"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-nano",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-NANO"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You're a helpful web scraping assistant.",
+              "role": "system"
+            },
+            {
+              "content": "You're provided a Markdown scrape of a website page. Your task is to provide a two-paragraph abstract of what this page is about.\n\nReturn in this JSON format:\n{\"abstract\": \"Your abstract goes here\"}\n\nRules: \n- Your extract should be comprehensive-similar level of detail as an abstract to a published paper.\n- Use a straigthforward, spartan tone of voice.\nIf it's empty, just say \"no content\"."
+            },
+            {
+              "content": "={{ $json.data }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        2280,
+        40
+      ],
+      "id": "f251ca5e-6ab0-4b2d-9f8a-b80002f074dd",
+      "name": "Analyze the Clients website data",
+      "credentials": {
+        
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are a helpful assistant of writing LinkedIn message openers to users",
+              "role": "system"
+            },
+            {
+              "content": "=You're writing a casual, human-sounding LinkedIn message opener for B2B outreach. Using the company abstract provided (and job title if given), write 1 sentences that feel like they come from someone who genuinely gets what the company does.\n\nDo not include greetings. DO NOT USE The long hyphen. Start the first sentence ONLY with small first character."
+            },
+            {
+              "content": "={{ $json.message.content.abstract }}"
+            },
+            {
+              "content": "={{ $('Extract Variables From Mailmoo').item.json['Job Title'] }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        2660,
+        40
+      ],
+      "id": "28331197-da1d-4422-895b-7928748c6980",
+      "name": "Create the LinkedIn Opening Message",
+      "credentials": {
+        
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "19DHPRH2bF-jXXOAuDGeu91LczkP2-JRZ056tDDx8HKQ",
+          "mode": "list",
+          "cachedResultName": "n8n personalized messages",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19DHPRH2bF-jXXOAuDGeu91LczkP2-JRZ056tDDx8HKQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Test data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19DHPRH2bF-jXXOAuDGeu91LczkP2-JRZ056tDDx8HKQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "VideoLink": "={{ $('Extract Variables From Mailmoo').item.json['Video Link'] }}",
+            "LinkedInOpener": "={{ $json.message.content.message_opener }}",
+            "LinkedIn Profile": "={{ $('Extract Variables From Mailmoo').item.json['LinkedIn Personal'] }}"
+          },
+          "matchingColumns": [
+            "LinkedIn Profile"
+          ],
+          "schema": [
+            {
+              "id": "Full Name",
+              "displayName": "Full Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Name",
+              "displayName": "Company Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Location",
+              "displayName": "Location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Domain",
+              "displayName": "Company Domain",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job Title",
+              "displayName": "Job Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "LinkedIn Profile",
+              "displayName": "LinkedIn Profile",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "VideoLink",
+              "displayName": "VideoLink",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "LinkedInOpener",
+              "displayName": "LinkedInOpener",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        3040,
+        40
+      ],
+      "id": "5fc09684-169c-42ae-b412-502b06b87ac8",
+      "name": "Update the Sheet with the Video and LinkedIn Opener",
+      "credentials": {
+        
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Get and Send Data to **Mailmoo**",
+        "height": 360,
+        "width": 1360
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -40
+      ],
+      "id": "8846ea00-e805-4041-b3cc-5c45fed3e3a9",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Get the video and create personalized opener message",
+        "height": 360,
+        "width": 1920,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        -40
+      ],
+      "id": "04e7a7e0-12a2-4898-ba10-13578902b115",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Send Lead Data to Mailmoo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start the workflow": {
+      "main": [
+        [
+          {
+            "node": "Get lead data from Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get lead data from Sheets": {
+      "main": [
+        [
+          {
+            "node": "Check that Personalization variables are found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check that Personalization variables are found": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Lead Data to Mailmoo": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Video to be ready": {
+      "main": [
+        [
+          {
+            "node": "Extract Variables From Mailmoo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Variables From Mailmoo": {
+      "main": [
+        [
+          {
+            "node": "Scrape the Lead Website contents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape the Lead Website contents": {
+      "main": [
+        [
+          {
+            "node": "Extract data from HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract data from HTML": {
+      "main": [
+        [
+          {
+            "node": "Analyze the Clients website data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze the Clients website data": {
+      "main": [
+        [
+          {
+            "node": "Create the LinkedIn Opening Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create the LinkedIn Opening Message": {
+      "main": [
+        [
+          {
+            "node": "Update the Sheet with the Video and LinkedIn Opener",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2d5ed67c-094c-4dd1-be80-68d8b589c7d8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "04bcbec5e6667f2909662de8e4a7a9127592376c0083cdb4fcf0c0f19bab2b31"
+  },
+  "id": "6adCHSEKkdU2Zfxl",
+  "tags": []
+}
